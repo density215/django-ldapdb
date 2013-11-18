@@ -160,7 +160,11 @@ class ListField(fields.Field):
         return [self.get_prep_lookup(lookup_type, value)]
 
     def get_db_prep_save(self, value, connection):
-        return [x.encode(connection.charset) for x in value]
+        try:
+            value_list = ast.literal_eval(value)
+        except ValueError:
+            value_list = [x.encode(connection.charset) for x in value]
+        return value_list
 
     def get_prep_lookup(self, lookup_type, value):
         "Perform preliminary non-db specific lookup checks and conversions"
@@ -205,11 +209,11 @@ class DateField(fields.DateField):
         return [self.get_prep_lookup(lookup_type, value)]
 
     def get_db_prep_save(self, value, connection):
-        try:
-            value_list = ast.literal_eval(value)
-        except ValueError:
-            value_list = [x.encode(connection.charset) for x in value]
-        return value_list
+        if not isinstance(value, datetime.date) \
+                and not isinstance(value, datetime.datetime):
+            raise ValueError(
+                'DateField can be only set to a datetime.date instance')
+
         return [value.strftime(self._date_format)]
 
     def get_prep_lookup(self, lookup_type, value):
