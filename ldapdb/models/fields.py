@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+import ast
 
 from django.db.models import fields, SubfieldBase
 
@@ -204,11 +205,11 @@ class DateField(fields.DateField):
         return [self.get_prep_lookup(lookup_type, value)]
 
     def get_db_prep_save(self, value, connection):
-        if not isinstance(value, datetime.date) \
-                and not isinstance(value, datetime.datetime):
-            raise ValueError(
-                'DateField can be only set to a datetime.date instance')
-
+        try:
+            value_list = ast.literal_eval(value)
+        except ValueError:
+            value_list = [x.encode(connection.charset) for x in value]
+        return value_list
         return [value.strftime(self._date_format)]
 
     def get_prep_lookup(self, lookup_type, value):
